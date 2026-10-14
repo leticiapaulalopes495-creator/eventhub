@@ -1,140 +1,132 @@
-
 @extends('layouts.app')
 
-@section('title', 'Gerenciar eventos')
+@section('title', 'Eventos')
 
 @section('content')
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3">
-                Gerenciar eventos
-            </h1>
 
-            <p class="text-muted mb-0">
-                Área administrativa
-            </p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            Eventos disponíveis
+        </h1>
+
+        <p class="text-muted mb-0">
+            Encontre um evento e faça sua inscrição.
+        </p>
+    </div>
+</div>
+
+<form
+    method="GET"
+    action="{{ route('events.index') }}"
+    class="card card-body mb-4"
+>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">
+                Pesquisar
+            </label>
+
+            <input
+                type="text"
+                name="search"
+                class="form-control"
+                placeholder="Nome ou descrição"
+                value="{{ request('search') }}"
+            >
         </div>
 
-        <div>
-            <a
-                href="{{ route('admin.categories.index') }}"
-                class="btn btn-outline-secondary"
-            >
-                Categorias
-            </a>
+        <div class="col-md-4">
+            <label class="form-label">
+                Categoria
+            </label>
 
-            <a
-                href="{{ route('admin.events.create') }}"
-                class="btn btn-primary"
+            <select
+                name="category_id"
+                class="form-select"
             >
-                Novo evento
-            </a>
+                <option value="">
+                    Todas
+                </option>
+
+                @foreach($categories as $category)
+                    <option
+                        value="{{ $category->id }}"
+                        @selected(request('category_id') == $category->id)
+                    >
+                        {{ $category->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-primary w-100">
+                Filtrar
+            </button>
         </div>
     </div>
+</form>
 
-    <div class="card shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Evento</th>
-                        <th>Categoria</th>
-                        <th>Data</th>
-                        <th>Inscritos</th>
-                        <th>Situação</th>
-                        <th class="text-end">Ações</th>
-                    </tr>
-                </thead>
+<div class="row g-4">
+    @forelse($events as $event)
 
-                <tbody>
-                    @forelse($events as $event)
-                        <tr>
-                            <td>
-                                {{ $event->title }}
-                            </td>
+        @php
+            $available = $event->capacity - $event->confirmed_registrations_count;
+        @endphp
 
-                            <td>
-                                {{ $event->category->name }}
-                            </td>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
 
-                            <td>
-                                {{ $event->start_at->format('d/m/Y H:i') }}
-                            </td>
+                    <span class="badge text-bg-secondary align-self-start mb-2">
+                        {{ $event->category->name }}
+                    </span>
 
-                            <td>
-                                {{ $event->confirmed_registrations_count }}
-                                /
-                                {{ $event->capacity }}
-                            </td>
+                    <h2 class="h5">
+                        {{ $event->title }}
+                    </h2>
 
-                            <td>
-                                @if($event->status === 'canceled')
-                                    <span class="badge text-bg-danger">
-                                        Cancelado
-                                    </span>
-                                @elseif($event->hasFinished())
-                                    <span class="badge text-bg-secondary">
-                                        Encerrado
-                                    </span>
-                                @elseif($event->hasStarted())
-                                    <span class="badge text-bg-warning">
-                                        Em andamento
-                                    </span>
-                                @else
-                                    <span class="badge text-bg-success">
-                                        Agendado
-                                    </span>
-                                @endif
-                            </td>
+                    <p class="text-muted">
+                        {{ \Illuminate\Support\Str::limit($event->description, 120) }}
+                    </p>
 
-                            <td class="text-end">
-                                <a
-                                    href="{{ route('admin.events.participants', $event) }}"
-                                    class="btn btn-sm btn-outline-dark"
-                                >
-                                    Participantes
-                                </a>
+                    <div class="small mb-3">
+                        <div>
+                            {{ $event->location }}
+                        </div>
 
-                                @if(!$event->hasStarted())
-                                    <a
-                                        href="{{ route('admin.events.edit', $event) }}"
-                                        class="btn btn-sm btn-outline-primary"
-                                    >
-                                        Editar
-                                    </a>
-                                @endif
+                        <div>
+                            {{ $event->start_at->format('d/m/Y H:i') }}
+                        </div>
 
-                                @if(!$event->registrations()->exists())
-                                    <form
-                                        method="POST"
-                                        action="{{ route('admin.events.destroy', $event) }}"
-                                        class="d-inline"
-                                    >
-                                        @csrf
-                                        @method('DELETE')
+                        <div>
+                            {{ $available }} vaga(s)
+                        </div>
+                    </div>
 
-                                        <button
-                                            class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('Excluir este evento?')"
-                                        >
-                                            Excluir
-                                        </button>
-                                    </form>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td
-                                colspan="6"
-                                class="text-center py-4"
-                            >
-                                Nenhum evento cadastrado.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    <a
+                        href="{{ route('events.show', $event) }}"
+                        class="btn btn-primary mt-auto"
+                    >
+                        Ver detalhes
+                    </a>
+
+                </div>
+            </div>
         </div>
-    </div>
+
+    @empty
+        <div class="col-12">
+            <div class="alert alert-info">
+                Nenhum evento encontrado.
+            </div>
+        </div>
+    @endforelse
+</div>
+
+<div class="mt-4">
+    {{ $events->links() }}
+</div>
+
 @endsection
